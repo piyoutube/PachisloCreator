@@ -556,13 +556,13 @@ function startFz(z){const f=G.flag;{const u=fzSnd(z,'start');if(u)sndUrl(u)}G.fr
 function fzSnd(z,k){const i=S.fz.indexOf(z);return i<0?null:(S.snd['fz'+i+'_'+k]||null)}
 function sndUrl(u){try{const a=new Audio(u);a.play().catch(()=>{})}catch(e){}}
 function frzTick(dt,nw){const z=G.frz;if(!z)return;const t=nw-z.t0,K=S.koma;if(z.lastCue==null)z.lastCue=-1;G.rpmFrz=0;
-const pend=G.R.some(R=>R.ap);
+const pend=G.R.some(R=>R.ap||R.bnc);
 if(t>=z.d.ms&&!pend){const u=fzSnd(z.d,'end');if(u)sndUrl(u);G.frz=null;G.fx=null;G.R.forEach(R=>{R.p=((R.pb!=null?R.pb:R.p)%K+K)%K;R.pb=null;R.bl=false;R.ap=0;R.st='idle'});beginSpin();return}
 let tt=t,f=z.d.rf[z.d.rf.length-1],fi=z.d.rf.length-1;for(let q=0;q<z.d.rf.length;q++){const x=z.d.rf[q];if(tt<x.ms){f=x;fi=q;break}tt-=x.ms}
 if(fi!=z.lastCue){z.lastCue=fi;const u=fzSnd(z.d,'coma'+fi);if(u)sndUrl(u)}
-G.R.forEach((R,r)=>{if(R.pb==null)R.pb=R.p;let act=(f.a&&(f.a[r]||f.a[r%3]))||'hold';if(R.ap)act='align';let v=0;const sp=(f.rpm||S.rpm||80)/60*K;
+G.R.forEach((R,r)=>{if(R.pb==null)R.pb=R.p;if(R.bnc){R.bnc.t+=dt;const u=R.bnc.t/.16;if(u>=1){R.pb=R.bnc.tg;R.bnc=null;R.p=R.pb}else{R.p=R.bnc.tg+.06*S.bounce*(1-u)*Math.sin(u*Math.PI*3)}R.bl=false;R.st='frz';return}let act=(f.a&&(f.a[r]||f.a[r%3]))||'hold';if(R.ap)act='align';let v=0;const sp=(f.rpm||S.rpm||80)/60*K;
 if(act=='spin')v=sp;else if(act=='slow')v=(f.rpm||10)/60*K;else if(act=='rev')v=-(f.rpm||40)/60*K;
-else if(act=='align'){R.ap=1;const tg=frzTarget(z.d,r),cur=((R.pb%K)+K)%K,d=((tg-cur)%K+K)%K;if(d<=sp*dt+1e-9){R.pb=tg;R.ap=0;act='hold';v=0}else{v=sp}}
+else if(act=='align'){R.ap=1;const tg=frzTarget(z.d,r),cur=((R.pb%K)+K)%K,d=((tg-cur)%K+K)%K;if(d<=sp*dt+1e-9){R.pb=tg;R.ap=0;act='hold';v=0;if(S.style=='bounce')R.bnc={tg:tg,t:0}}else{v=sp}}
 if(v){const q=Math.abs(v)*60/K;if(q>(G.rpmFrz||0))G.rpmFrz=q}R.pb=((R.pb+v*dt)%K+K)%K;R.p=R.pb+(act=='shake'?Math.sin(nw/18+r)*.06:0);R.bl=act=='spin'||act=='rev'||(act=='align'&&v>0);R.st='frz'})}
 function frzTarget(z,r){const pt=G.frzWin||null;const w=pt!=null?pt[r]:null;if(w==null||w<0)return Math.round(G.R[r]?G.R[r].pb||0:0);const K=S.koma,rv=S.strips[r].slice().reverse();for(let i=0;i<K;i++)if(rv[i]==w)return i;return 0}
 function fzUI(){const ACT=[['hold','停止のまま'],['spin','回転'],['slow','ゆっくり回転'],['rev','逆回転'],['shake','小刻みに震える'],['align','成立図柄に揃える(演出)']],EV=[['big','BIGフラグ成立'],['reg','REGフラグ成立'],['rare','レア役成立'],['win','小役成立'],['miss','ハズレ'],['any','毎ゲーム']];
