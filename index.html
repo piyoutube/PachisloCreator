@@ -141,6 +141,9 @@ RC=rn;RL.r(RC/base)}
 function playUrl(u,cb){try{const a=new Audio(u);if(cb){a.onended=cb;a.onerror=cb}a.play().catch(()=>cb&&cb())}catch(e){cb&&cb()}}
 function fanPlay(bo,cb){const fk=bo.t=='big'?'fanB'+(bo.k||0):'fanR';if(S.snd[fk])playUrl(S.snd[fk],cb);else play(bo.t=='big'?7:8,cb)}
 function fanRows(){const n=nb(),row=(key,label)=>`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%"><span>${label}</span><input type="file" data-f="s:${key}" accept="audio/*">${S.snd[key]?`<span class="sm">✓ 登録済み</span><button data-a="tfn:${key}">試聴</button><button data-a="cs:${key}">削除</button>`:`<span class="sm">未登録(標準音)</span>`}</div>`;let h='<div class="g">';for(let k=0;k<n;k++)h+=row('fanB'+k,'BIG'+(n>1?k+1:'')+' ファンファーレ');h+=row('fanR','REG ファンファーレ');return h+'</div>'}
+let PO=null;
+function payStart(k){payStop();const u=S.snd[k];try{if(u){const a=new Audio(u);a.play().catch(()=>{});PO={s:()=>{a.pause();a.currentTime=0}}}else{AC=AC||new AudioContext();const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=880;g.gain.value=.04;o.connect(g);g.connect(AC.destination);o.start();PO={s:()=>{try{o.stop()}catch(e){}}}}}catch(e){PO=null}}
+function payStop(){if(PO){PO.s();PO=null}}
 let AC;function play(k,cb){if(S.snd[k]){const a=new Audio(S.snd[k]);if(cb){a.onended=cb;a.onerror=cb}a.play().catch(()=>cb&&cb());return}
 try{AC=AC||new AudioContext();let t=AC.currentTime;TN[k].forEach(([f,d])=>{const o=AC.createOscillator(),a=AC.createGain();o.type='square';o.frequency.value=f;a.gain.value=.05;o.connect(a);a.connect(AC.destination);o.start(t);o.stop(t+d);t+=d});if(cb)setTimeout(cb,(t-AC.currentTime)*1000+20)}catch(e){cb&&cb()}}
 const SEG={0:'abcdef',1:'bc',2:'abdeg',3:'abcdg',4:'bcfg',5:'acdfg',6:'acdefg',7:'abc',8:'abcdefg',9:'abcdfg'},SR=[['a',2,0,8,2],['b',10,2,2,7],['c',10,11,2,7],['d',2,18,8,2],['e',0,11,2,7],['f',0,2,2,7],['g',2,9,8,2]];
@@ -196,11 +199,11 @@ function resolve(){const w=ev(G.R.map((R,r)=>vw(r,R.tg)))||{p:0},K=S.koma;let p=
 if(b){b.g++;const l=lim();if(S.type<5){if(Math.random()<(b.t=='reg'||S.type==3?.5:.3)){b.jac++;if(S.bpay)bp=S.bpayN}}else if(S.bpay&&b.paid<S.bpayN){bp=Math.min(15,S.bpayN-b.paid);b.paid+=bp}
 b.earn+=p+bp;end=l?(b.g>=l[0]||b.jac>=l[1]):(b.earn>=(b.t=='big'?S.bigEnd:S.regEnd)||b.g>=150)}
 p+=bp;G.last=0;G.pd=performance.now()+p*100;
-const f=G.flag,ps=b?(b.t=='big'?9:10):(f&&f.t=='sym'&&S.syms[f.i].rare?6:5);for(let i=0;i<p;i++)setTimeout(()=>{const t0=G.tray;give(1);G.last++;const ov=G.tray>t0,ts=S.tsnd||'sim';if(ts=='only'){if(ov)play(13);else play(ps)}else if(ts=='seq'){play(ps,()=>{if(ov)play(13)})}else{play(ps);if(ov)play(13)}hud()},i*100);
+const f=G.flag,ps=b?(b.t=='big'?9:10):(f&&f.t=='sym'&&S.syms[f.i].rare?6:5);const ts=S.tsnd||'sim',nC=Math.min(p,Math.max(0,S.cap-G.cr));if(p>0&&(ts!='only'||nC>0))payStart(ps);let ovN=0;for(let i=0;i<p;i++)setTimeout(()=>{const t0=G.tray;give(1);G.last++;const ov=G.tray>t0;if(ov){ovN++;if(ts=='seq')setTimeout(()=>play(13),p*100+ovN*80);else play(13)}hud()},i*100);if(p>0)setTimeout(payStop,p*100);
 blinkStart(w);tlWin(w);ooWin(w);if(w.rp){play(12);msg('リプレイ')}if(G.rt>0)G.rt--;if(G.at>0)G.at--;
 if(w.bo){statB(w.bo.t);CK.bo++;flash('start');G.bn={t:w.bo.t,g:0,jac:0,earn:0,paid:0};G.hold=null;setTimeout(()=>fanPlay(w.bo,()=>{if(G.bn)bgmPlay(w.bo.t=='big'?'bgmB'+(w.bo.k||0):'bgmR')}),300);msg(w.bo.t.toUpperCase()+' BONUS 成立!')}
 if(G.dhit&&!w.bo&&!G.bn){const d=G.dhit;statB(d.t);G.bn={t:d.t,k:d.k||0,g:0,jac:0,earn:0,paid:0};G.hold=null;bgmPlay(d.t=='big'?'bgmB'+(d.k||0):'bgmR')}G.dhit=null;
-if(end){G.bn=null;bgmStop();G.dh={};setTimeout(()=>play(11),p>0?p*100+200:300);if(S.mode=='RT'||S.mode=='ART')G.rt=50;if(S.mode=='AT'||S.mode=='ART')G.at=30;msg('ボーナス終了')}
+if(end){G.bn=null;setTimeout(bgmStop,p>0?p*100:0);G.dh={};setTimeout(()=>play(11),p>0?p*100+200:300);if(S.mode=='RT'||S.mode=='ART')G.rt=50;if(S.mode=='AT'||S.mode=='ART')G.at=30;msg('ボーナス終了')}
 G.R.forEach(R=>{R.p=R.tg%K;R.st='idle'});if(!w.rp)G.bet=0;G.ph='bet';hud()}
 const cv=document.createElement('canvas'),x=cv.getContext('2d'),CW=120,CH=60,cvx=x;
 function dsym(i,X,Y,x=cvx){const s=S.syms[i],q=(S.ss||80)/100,sw=CW*q,sh=CH*q,ox=X+(CW-sw)/2,oy=Y+(CH-sh)/2;if(s.img){if(!s._i||s._u!=s.img){s._i=new Image();s._i.src=s.img;s._u=s.img}if(s._i.complete&&s._i.naturalWidth){x.drawImage(s._i,ox,oy,sw,sh);return}}
